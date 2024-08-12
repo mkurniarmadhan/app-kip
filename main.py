@@ -164,8 +164,13 @@ for cluster in range(1, klaster_optimal + 1):
     interpretasi["Anggota"].append(', '.join(cluster_data['Responden'].tolist()))
 
 
+
+
+
 interpretasi_df = pd.DataFrame(interpretasi)
 print(interpretasi_df)
+
+
 
 # Visualisasi pola perubahan IPK
 plt.figure(figsize=(12, 6))
