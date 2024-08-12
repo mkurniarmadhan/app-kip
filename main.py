@@ -151,6 +151,9 @@ interpretasi = {
 # Interpretasi hasil klasterisasi
 print("\nInterpretasi Hasil Klasterisasi:")
 
+if "Interpretasi" not in interpretasi:
+    interpretasi["Interpretasi"] = []
+
 for cluster in range(1, klaster_optimal + 1):
     cluster_data = data[data['Cluster'] == cluster]
 
@@ -163,14 +166,26 @@ for cluster in range(1, klaster_optimal + 1):
     interpretasi["Persentase Bekerja"].append(cluster_data['P12'].mean() * 100)
     interpretasi["Anggota"].append(', '.join(cluster_data['Responden'].tolist()))
 
-
-
-
+ # Tambahkan interpretasi berdasarkan kondisi MBKM, Organisasi, dan Bekerja
+    if cluster_data['P10'].mean() == 0 and cluster_data['P11'].mean() == 0 and cluster_data['P12'].mean() == 0:
+        interpretasi["Interpretasi"].append(
+            "Mahasiswa dalam klaster ini cenderung fokus pada studi akademik tanpa terlibat dalam kegiatan ekstrakurikuler."
+        )
+    elif cluster_data['P10'].mean() == 1 and cluster_data['P11'].mean() == 1 and cluster_data['P12'].mean() == 1:
+        interpretasi["Interpretasi"].append(
+            "Mahasiswa dalam klaster ini berhasil menjaga performa akademik yang sangat baik meskipun terlibat dalam banyak kegiatan non-akademik."
+        )
+    else:
+        interpretasi["Interpretasi"].append(
+            "Mahasiswa dalam klaster ini menunjukkan performa akademik yang lebih rendah, meskipun terlibat dalam MBKM dan organisasi."
+        )
 
 interpretasi_df = pd.DataFrame(interpretasi)
+
+# Ekspor hasil interpretasi ke file JSON
+interpretasi_df.to_json('hasil_klasterisasi.json', orient='records', indent=4)
+
 print(interpretasi_df)
-
-
 
 # Visualisasi pola perubahan IPK
 plt.figure(figsize=(12, 6))
