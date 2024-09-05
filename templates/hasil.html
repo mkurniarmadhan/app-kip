@@ -11,25 +11,52 @@
   </head>
   <body>
     <div class="container">
-      <h1 class="mt-5">Clustering Result</h1>
-      <h2>Optimal Number of Clusters: {{ klaster_optimal }}</h2>
+      <h1>Hasil Klasterisasi</h1>
+
+      <h2>Jumlah Klaster Optimal: {{ hasil['cluster_count'] }}</h2>
 
       <h3>Dendrogram</h3>
       <img
-        src="data:image/png;base64,{{ dendrogram_img }}"
-        class="img-fluid"
+        src="{{ url_for('static', filename='hasil/dendrogram.png') }}"
         alt="Dendrogram"
       />
 
-      <h3>Silhouette Scores</h3>
+      <h3>Silhouette Score</h3>
       <img
-        src="data:image/png;base64,{{ silhouette_score_img }}"
-        class="img-fluid"
+        src="{{ url_for('static', filename='hasil/silhouette_scores.png') }}"
         alt="Silhouette Score"
       />
 
-      <h3>Cluster Details</h3>
-      <div class="table-responsive">{{ data|safe }}</div>
+      <h3>Pola Perubahan IPK</h3>
+      <img
+        src="{{ url_for('static', filename='hasil/perubahan_ipk.png') }}"
+        alt="Pola Perubahan IPK"
+      />
+      <h3>Interpretasi Hasil Klasterisasi</h3>
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Cluster</th>
+            <th>Jumlah Data</th>
+            <th>Rata-rata IPK</th>
+            <th>Persentase MBKM</th>
+            <th>Persentase Bekerja</th>
+            <th>Persentase Organisasi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in hasil['interpretasi'] %}
+          <tr>
+            <td>{{ item['cluster'] }}</td>
+            <td>{{ item['jumlah_data'] }}</td>
+            <td>{{ item['rata_rata_ipk'] }}</td>
+            <td>{{ item['mbkm_percent'] }}%</td>
+            <td>{{ item['bekerja_percent'] }}%</td>
+            <td>{{ item['organisasi_percent'] }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
       <a href="/" class="btn btn-primary mt-3">Upload Another File</a>
     </div>
