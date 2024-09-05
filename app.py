@@ -120,7 +120,8 @@ def process_file(filepath):
         'silhouette': silhouette_path,
         'perubahan_ipk': perubahan_ipk_path,
         'cluster_count': klaster_optimal,
-        'interpretasi': interpretasi
+        'interpretasi': interpretasi,
+        'data':data.to_html(classes='table table-striped')
     }
 
 # Route untuk halaman utama
