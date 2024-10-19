@@ -11,60 +11,205 @@
   </head>
   <body>
     <div class="container">
-      <h1>Hasil Klasterisasi</h1>
+      <div class="row mt-5">
+        <div class="col-3">
+          <div
+            class="nav flex-column nav-pills"
+            id="v-pills-tab"
+            role="tablist"
+            aria-orientation="vertical"
+          >
+            <a
+              class="nav-link active"
+              id="v-pills-home-tab"
+              data-toggle="pill"
+              href="#v-pills-home"
+              role="tab"
+              aria-controls="v-pills-home"
+              aria-selected="true"
+              >Dataset</a
+            >
+            <a
+              class="nav-link"
+              id="v-pills-profile-tab"
+              data-toggle="pill"
+              href="#v-pills-profile"
+              role="tab"
+              aria-controls="v-pills-profile"
+              aria-selected="false"
+              >Pre Procesing data</a
+            >
+            <a
+              class="nav-link"
+              id="v-pills-messages-tab"
+              data-toggle="pill"
+              href="#v-pills-messages"
+              role="tab"
+              aria-controls="v-pills-messages"
+              aria-selected="false"
+              >Data Cluster</a
+            >
+            <a
+              class="nav-link"
+              id="v-pills-settings-tab"
+              data-toggle="pill"
+              href="#v-pills-settings"
+              role="tab"
+              aria-controls="v-pills-settings"
+              aria-selected="false"
+              >Dendogram Hasil</a
+            >
+            <a
+              class="nav-link"
+              id="v-pills-silhouette-tab"
+              data-toggle="pill"
+              href="#v-pills-silhouette"
+              role="tab"
+              aria-controls="v-pills-silhouette"
+              aria-selected="false"
+              >silhouette score</a
+            >
+            <a
+              class="nav-link"
+              id="v-pills-ipk-tab"
+              data-toggle="pill"
+              href="#v-pills-ipk"
+              role="tab"
+              aria-controls="v-pills-ipk"
+              aria-selected="false"
+              >Plot perubahan ipk</a
+            >
+            <a
+              class="nav-link"
+              id="v-pills-interpretasi-tab"
+              data-toggle="pill"
+              href="#v-pills-interpretasi"
+              role="tab"
+              aria-controls="v-pills-interpretasi"
+              aria-selected="false"
+              >interpretasi hasil</a
+            >
+          </div>
+        </div>
+        <div class="col-9">
+          <div class="tab-content" id="v-pills-tabContent">
+            <div
+              class="tab-pane fade show active"
+              id="v-pills-home"
+              role="tabpanel"
+              aria-labelledby="v-pills-home-tab"
+            >
+              <div class="table-responsive">{{ hasil['dataset']|safe }}</div>
+            </div>
+            <div
+              class="tab-pane fade"
+              id="v-pills-profile"
+              role="tabpanel"
+              aria-labelledby="v-pills-profile-tab"
+            >
+              <div class="table-responsive">
+                {{ hasil['data_normalized']|safe }}
+              </div>
+            </div>
+            <div
+              class="tab-pane fade"
+              id="v-pills-messages"
+              role="tabpanel"
+              aria-labelledby="v-pills-messages-tab"
+            >
+              <div class="table-responsive">{{ hasil['data']|safe }}</div>
+            </div>
+            <div
+              class="tab-pane fade"
+              id="v-pills-settings"
+              role="tabpanel"
+              aria-labelledby="v-pills-settings-tab"
+            >
+              <img
+                class="img-fluid"
+                src="{{ url_for('static', filename='hasil/dendrogram.png') }}"
+                alt="Dendrogram"
+              />
+            </div>
+            <div
+              class="tab-pane fade"
+              id="v-pills-silhouette"
+              role="tabpanel"
+              aria-labelledby="v-pills-silhouette-tab"
+            >
+              <img
+                class="img-fluid"
+                src="{{ url_for('static', filename='hasil/silhouette_scores.png') }}"
+                alt="silhouette_scores"
+              />
 
-      <h3>Cluster Details</h3>
-      <div class="table-responsive">{{ hasil['data']|safe }}</div>
-
-      <h2>Jumlah Klaster Optimal: {{ hasil['cluster_count'] }}</h2>
-      <div class="table-responsive">{{ hasil['silhouette_df']|safe }}</div>
-
-      <h3>Dendrogram</h3>
-      <img
-        src="{{ url_for('static', filename='hasil/dendrogram.png') }}"
-        alt="Dendrogram"
-      />
-
-      <h3>Silhouette Score</h3>
-      <img
-        src="{{ url_for('static', filename='hasil/silhouette_scores.png') }}"
-        alt="Silhouette Score"
-      />
-
-      <h3>Pola Perubahan IPK</h3>
-      <img
-        src="{{ url_for('static', filename='hasil/perubahan_ipk.png') }}"
-        alt="Pola Perubahan IPK"
-      />
-      <h3>Interpretasi Hasil Klasterisasi</h3>
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Cluster</th>
-            <th>Jumlah Data</th>
-            <th>Rata-rata IPK</th>
-            <th>Persentase MBKM</th>
-            <th>Persentase Bekerja</th>
-            <th>Persentase Organisasi</th>
-            <th>Anggota</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in hasil['interpretasi'] %}
-          <tr>
-            <td>{{ item['cluster'] }}</td>
-            <td>{{ item['jumlah_data'] }}</td>
-            <td>{{ item['rata_rata_ipk'] }}</td>
-            <td>{{ item['mbkm_percent'] }}%</td>
-            <td>{{ item['bekerja_percent'] }}%</td>
-            <td>{{ item['organisasi_percent'] }}%</td>
-            <td>{{ item['anggota'] }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              <h2>Jumlah Klaster Optimal: {{ hasil['cluster_count'] }}</h2>
+              <div class="table-responsive">
+                {{ hasil['silhouette_df']|safe }}
+              </div>
+            </div>
+            <div
+              class="tab-pane fade"
+              id="v-pills-ipk"
+              role="tabpanel"
+              aria-labelledby="v-pills-ipk-tab"
+            >
+              <img
+                class="img-fluid"
+                src="{{ url_for('static', filename='hasil/perubahan_ipk.png') }}"
+                alt="Pola Perubahan IPK"
+              />
+            </div>
+            <div
+              class="tab-pane fade"
+              id="v-pills-interpretasi"
+              role="tabpanel"
+              aria-labelledby="v-pills-interpretasi-tab"
+            >
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Cluster</th>
+                      <th>Jumlah Data</th>
+                      <th>Rata-rata IPK</th>
+                      <th>Persentase MBKM</th>
+                      <th>Persentase Bekerja</th>
+                      <th>Persentase Organisasi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in hasil['interpretasi'] %}
+                    <tr>
+                      <td>{{ item['cluster'] }}</td>
+                      <td>{{ item['jumlah_data'] }}</td>
+                      <td>{{ item['rata_rata_ipk'] }}</td>
+                      <td>{{ item['mbkm_percent'] }}%</td>
+                      <td>{{ item['bekerja_percent'] }}%</td>
+                      <td>{{ item['organisasi_percent'] }}%</td>
+                      <td>{{ item['interpretasi'] }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <a href="/" class="btn btn-primary mt-3">Upload Another File</a>
     </div>
+
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx"
+      crossorigin="anonymous"
+    ></script>
   </body>
 </html>

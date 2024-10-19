@@ -1,6 +1,9 @@
 venv/
+temp/*
 
 data-responden-normalized.csv
 data-responden-updated.csv 
 distance_matrix.csv 
 hasil_klasterisasi.json
+
+static/hasil/

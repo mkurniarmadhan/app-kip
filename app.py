@@ -16,7 +16,7 @@ from scipy.stats import zscore
 app = Flask(__name__)
 
 # Set secret key for flash messages
-app.secret_key = 'supersecretkey'
+app.secret_key = 'appkip'
 
 # Folder untuk menyimpan file statis hasil proses
 UPLOAD_FOLDER = 'static/hasil'
@@ -25,6 +25,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Fungsi untuk melakukan klasterisasi dan menghasilkan visualisasi
 def process_file(filepath):
     try:
+
         # Load data
         data = pd.read_csv(filepath)
 
@@ -39,14 +40,21 @@ def process_file(filepath):
         data.drop(columns=['Timestamp', 'Email Address', 'NIM', 'Jenis kelamin', 'Fakultas', 'KIP', 
                            'Organisasi Detail', 'Aktivitas Luar Kampus', 'Faktor Kerja'], inplace=True)
 
+
         # Konversi nilai biner 'Ya'/'Tidak' ke angka
         data['MBKM'] = data['MBKM'].map({'Ya': 1, 'Tidak': 0})
         data['Organisasi'] = data['Organisasi'].map({'Ya': 1, 'Tidak': 0})
         data['Bekerja'] = data['Bekerja'].map({'Ya': 1, 'Tidak': 0})
+    
+
+        dataset = data.copy()
 
         # Normalisasi Z-score
         data_numeric = data.drop(columns=['Responden'])
-        data_normalized = data_numeric.apply(zscore)
+        data_normalized = data_numeric.apply(zscore).round(4)
+        
+        data_normalized.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], 'data_normalized.csv'))
+
 
         # Hitung matriks jarak Euclidean
         distance_matrix = pdist(data_normalized, metric='euclidean')
@@ -67,11 +75,11 @@ def process_file(filepath):
         for n_clusters in range_n_clusters:
             cluster_labels = fcluster(linkage_matrix, n_clusters, criterion='maxclust')
             score = silhouette_score(data_normalized, cluster_labels)
-            silhouette_scores.append(score)
+            silhouette_scores.append(score.round(4))
 
         silhouette_df = pd.DataFrame({
-            'Number of Clusters': range_n_clusters,
-            'Silhouette Score': silhouette_scores
+            'Jumlah Klaster': range_n_clusters,
+            'Nilai Silhouette Score': silhouette_scores
         })
 
         # Plot Silhouette Score
@@ -88,6 +96,12 @@ def process_file(filepath):
         # Tentukan jumlah klaster optimal
         klaster_index = silhouette_scores.index(max(silhouette_scores))
         klaster_optimal = range_n_clusters[klaster_index]
+
+        # Tampilkan klaster optimal
+        print(f"Jumlah klaster optimal: {klaster_optimal}")
+        print(f"Silhouette Score tertinggi: {max(silhouette_scores).round(4)}")
+
+        # silhouette_df.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], 'silhouette_scores.csv'), index=False)
 
         # Buat klaster dengan jumlah klaster optimal
         cluster_labels = fcluster(linkage_matrix, klaster_optimal, criterion='maxclust')
@@ -119,6 +133,13 @@ def process_file(filepath):
             organisasi_percent = (cluster_data['Organisasi'].mean()) * 100
             anggota = cluster_data['Responden'].tolist()
 
+            if mbkm_percent == 0 and organisasi_percent ==0 and bekerja_percent ==0:
+                interpretasi_hasil =     "Mahasiswa dalam klaster ini cenderung fokus pada studi akademik tanpa terlibat dalam kegiatan ekstrakurikuler."
+            elif mbkm_percent == 1 and organisasi_percent ==1 and bekerja_percent ==1:
+                interpretasi_hasil = "Mahasiswa dalam klaster ini berhasil menjaga performa akademik yang sangat baik meskipun terlibat dalam banyak kegiatan non-akademik."
+            else:
+                interpretasi_hasil = "Mahasiswa dalam klaster ini menunjukkan performa akademik yang lebih rendah, meskipun terlibat dalam MBKM dan organisasi."
+
             interpretasi.append({
                 'cluster': cluster,
                 'jumlah_data': jumlah_data,
@@ -126,16 +147,20 @@ def process_file(filepath):
                 'mbkm_percent': round(mbkm_percent, 2),
                 'bekerja_percent': round(bekerja_percent, 2),
                 'organisasi_percent': round(organisasi_percent, 2),
-                'anggota': anggota 
+                'anggota': anggota,
+                'interpretasi':interpretasi_hasil
             })
 
+      
         return {
             'dendrogram': dendrogram_path,
             'silhouette': silhouette_path,
             'perubahan_ipk': perubahan_ipk_path,
             'cluster_count': klaster_optimal,
             'interpretasi': interpretasi,
-            'data':data.to_html(classes='table table-striped'),        
+            'dataset':dataset.to_html(classes='table table-striped',),        
+            'data':data.to_html(classes='table table-striped',),        
+            'data_normalized':data_normalized.to_html(classes='table table-striped',),        
             'silhouette_df':silhouette_df.to_html(classes='table table-striped') 
         }
 
@@ -155,8 +180,8 @@ def index():
             flash('Tidak ada file yang di upload','danger')
             return redirect(request.url)
         if file and file.filename.endswith('.csv'):  # Pastikan file CSV
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            # filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'dataset.csv')
             file.save(filepath)
             # Proses file dan dapatkan hasil
             hasil = process_file(filepath)
