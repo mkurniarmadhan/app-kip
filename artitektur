@@ -1,0 +1,35 @@
+@startuml
+actor "User" as user
+
+node "Frontend (Web Application)" {
+    component "UI" as ui
+    component "File Upload" as upload
+    component "Menampilkan Hasil Pengolahan" as result
+}
+
+node "Backend (Flask App)" {
+    component "Menangani File Upload" as api_upload
+    component "Data Preprocessing" as preprocess
+    component "Proses Clustering" as clustering
+    component "Perhitungan Silhouette Score" as silhouette
+    component "Hasil Interpretasi" as analysis
+    component "Static File" as static_handler
+}
+
+node "Clustering" {
+
+    component "Hasil Clustering" as cluster_results
+}
+
+user --> ui : Upload File
+ui --> upload : Kirim file ke backend
+upload --> api_upload : POST request with file
+api_upload --> preprocess : pra proses Data 
+preprocess --> clustering : proses Hierarchical Clustering (Average Linkage)
+clustering --> silhouette : hitung Silhouette Score
+silhouette --> cluster_results : simpan cluster optimal
+cluster_results --> static_handler : Simpan hasil dalam bentuk foto
+static_handler --> result : menampilkan hasil ke user
+
+result --> user : Show Dendrogram, Clusters, and Interpretation
+@enduml

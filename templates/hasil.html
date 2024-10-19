@@ -17,6 +17,7 @@
       <div class="table-responsive">{{ hasil['data']|safe }}</div>
 
       <h2>Jumlah Klaster Optimal: {{ hasil['cluster_count'] }}</h2>
+      <div class="table-responsive">{{ hasil['silhouette_df']|safe }}</div>
 
       <h3>Dendrogram</h3>
       <img
@@ -45,6 +46,7 @@
             <th>Persentase MBKM</th>
             <th>Persentase Bekerja</th>
             <th>Persentase Organisasi</th>
+            <th>Anggota</th>
           </tr>
         </thead>
         <tbody>
@@ -56,6 +58,7 @@
             <td>{{ item['mbkm_percent'] }}%</td>
             <td>{{ item['bekerja_percent'] }}%</td>
             <td>{{ item['organisasi_percent'] }}%</td>
+            <td>{{ item['anggota'] }}</td>
           </tr>
           {% endfor %}
         </tbody>

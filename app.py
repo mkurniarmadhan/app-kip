@@ -29,6 +29,8 @@ def process_file(filepath):
                     'IP S1', 'IP S2', 'IP S3', 'IP S4', 'IP S5', 'IP S6', 'IP S7', 'IP S8', 'IPK', 
                     'MBKM', 'Organisasi', 'Organisasi Detail', 'Aktivitas Luar Kampus', 'Bekerja', 'Faktor Kerja']
 
+    data['Responden'] = [f'R{i+1}' for i in range(len(data))]
+
     # Hapus kolom yang tidak diperlukan
     data.drop(columns=['Timestamp', 'Email Address', 'NIM', 'Jenis kelamin', 'Fakultas', 'KIP', 
                        'Organisasi Detail', 'Aktivitas Luar Kampus', 'Faktor Kerja'], inplace=True)
@@ -37,6 +39,12 @@ def process_file(filepath):
     data['MBKM'] = data['MBKM'].map({'Ya': 1, 'Tidak': 0})
     data['Organisasi'] = data['Organisasi'].map({'Ya': 1, 'Tidak': 0})
     data['Bekerja'] = data['Bekerja'].map({'Ya': 1, 'Tidak': 0})
+
+
+# Ambil 60 data untuk dinormalisasi
+    data = data.head(60)
+
+
 
     # Normalisasi Z-score
     data_numeric = data.drop(columns=['Responden'])
@@ -63,6 +71,10 @@ def process_file(filepath):
         score = silhouette_score(data_numeric, cluster_labels)
         silhouette_scores.append(score)
 
+    silhouette_df = pd.DataFrame({
+        'Number of Clusters': range_n_clusters,
+        'Silhouette Score': silhouette_scores
+    })
     # Plot Silhouette Score
     plt.figure(figsize=(10, 6))
     plt.plot(range_n_clusters, silhouette_scores, marker='o')
@@ -105,14 +117,16 @@ def process_file(filepath):
         mbkm_percent = (cluster_data['MBKM'].mean()) * 100
         bekerja_percent = (cluster_data['Bekerja'].mean()) * 100
         organisasi_percent = (cluster_data['Organisasi'].mean()) * 100
-        
+        anggota = cluster_data['Responden'].tolist()  # Ganti 'Responden' dengan kolom yang sesuai jika diperlukan
+   
         interpretasi.append({
             'cluster': cluster,
             'jumlah_data': jumlah_data,
             'rata_rata_ipk': round(rata_rata_ipk, 2),
             'mbkm_percent': round(mbkm_percent, 2),
             'bekerja_percent': round(bekerja_percent, 2),
-            'organisasi_percent': round(organisasi_percent, 2)
+            'organisasi_percent': round(organisasi_percent, 2),
+            'anggota': anggota 
         })
 
     return {
@@ -121,7 +135,8 @@ def process_file(filepath):
         'perubahan_ipk': perubahan_ipk_path,
         'cluster_count': klaster_optimal,
         'interpretasi': interpretasi,
-        'data':data.to_html(classes='table table-striped')
+        'data':data.to_html(classes='table table-striped'),        
+        'silhouette_df':silhouette_df.to_html(classes='table table-striped') 
     }
 
 # Route untuk halaman utama

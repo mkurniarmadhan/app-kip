@@ -97,7 +97,7 @@ plt.tight_layout()
 
 
 # Menentukan rentang jumlah klaster yang akan diuji
-range_n_clusters = list(range(2, 11))  # Uji dari 2 hingga 10 klaster
+range_n_clusters = list(range(3, 11))  # Uji dari 2 hingga 10 klaster
 
 silhouette_scores = []
 
