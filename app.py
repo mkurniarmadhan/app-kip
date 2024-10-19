@@ -16,7 +16,7 @@ from scipy.stats import zscore
 app = Flask(__name__)
 
 # Set secret key for flash messages
-app.secret_key = 'supersecretkey'
+app.secret_key = 'appkip'
 
 # Folder untuk menyimpan file statis hasil proses
 UPLOAD_FOLDER = 'static/hasil'
