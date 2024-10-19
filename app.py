@@ -42,7 +42,7 @@ def process_file(filepath):
 
 
 # Ambil 60 data untuk dinormalisasi
-    data = data.head(60)
+    # data = data.head(60)
 
 
 
@@ -64,11 +64,13 @@ def process_file(filepath):
     plt.close()
 
     # Silhouette Score untuk berbagai klaster
-    range_n_clusters = list(range(2, 11))
+    range_n_clusters = list(range(4, 11))
+
     silhouette_scores = []
     for n_clusters in range_n_clusters:
+        
         cluster_labels = fcluster(linkage_matrix, n_clusters, criterion='maxclust')
-        score = silhouette_score(data_numeric, cluster_labels)
+        score = silhouette_score(data_normalized, cluster_labels)
         silhouette_scores.append(score)
 
     silhouette_df = pd.DataFrame({
@@ -87,7 +89,8 @@ def process_file(filepath):
     plt.close()
 
     # Tentukan jumlah klaster optimal
-    klaster_optimal = silhouette_scores.index(max(silhouette_scores)) + 2
+    klaster_index = silhouette_scores.index(max(silhouette_scores))
+    klaster_optimal = range_n_clusters[klaster_index]
 
     # Buat klaster dengan jumlah klaster optimal
     cluster_labels = fcluster(linkage_matrix, klaster_optimal, criterion='maxclust')
