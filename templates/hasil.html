@@ -139,14 +139,12 @@
             >
               <img
                 class="img-fluid"
-                src="{{ url_for('static', filename='hasil/silhouette_scores.png') }}"
-                alt="silhouette_scores"
+                src="{{ url_for('static', filename='hasil/silhouette_score_plot.png') }}"
+                alt="silhouette_score_plot"
               />
 
-              <h2>Jumlah Klaster Optimal: {{ hasil['cluster_count'] }}</h2>
-              <div class="table-responsive">
-                {{ hasil['silhouette_df']|safe }}
-              </div>
+              <h2>Nilai Silhouette Score: {{ hasil['silhouette_score'] }}</h2>
+              <div class="table-responsive"></div>
             </div>
             <div
               class="tab-pane fade"
