@@ -4,8 +4,7 @@ from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 
-# Baca data
-data = pd.read_csv("data.csv")  # Ganti dengan lokasi file Anda
+data = pd.read_csv("data.csv")
 features = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12"]
 
 # Normalisasi data
@@ -30,13 +29,11 @@ plt.show()
 num_clusters = 3
 clusters = fcluster(linkage_matrix, num_clusters, criterion="maxclust")
 
-# Tambahkan hasil clustering ke dalam DataFrame
 data["Cluster"] = clusters
 print("\nJumlah anggota dalam setiap cluster:")
 print(data["Cluster"].value_counts())
 
 
-# Tampilkan anggota tiap cluster
 for cluster_id in range(1, num_clusters + 1):
     print(f"\nCluster {cluster_id}: ")
     print(data[data["Cluster"] == cluster_id][["Responden", "P9", "P10", "P11", "P12"]])
