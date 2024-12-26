@@ -8,15 +8,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
-from scipy.spatial.distance import pdist, squareform
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, silhouette_samples
 from scipy.stats import zscore
 
 app = Flask(__name__)
 
-# Set secret key for flash messages
 app.secret_key = "appkip"
 
 # Folder untuk menyimpan file statis hasil proses
@@ -27,13 +25,9 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 # Fungsi untuk melakukan klasterisasi dan menghasilkan visualisasi
 def process_file(filepath):
     try:
-
-        # Load data
         data = pd.read_csv(filepath)
 
-        # Ganti nama kolom untuk kemudahan pemrosesan
-        data.columns = [
-            "Responden",
+        features = [
             "P1",
             "P2",
             "P3",
@@ -48,44 +42,19 @@ def process_file(filepath):
             "P12",
         ]
 
-        # data["Responden"] = [f"R{i+1}" for i in range(len(data))]
-
-        # Hapus kolom yang tidak diperlukan
-        #  data.drop(
-        #     columns=[
-        #         "Timestamp",
-        #         "Email Address",
-        #         "NIM",
-        #         "Jenis kelamin",
-        #         "Fakultas",
-        #         "KIP",
-        #         "Organisasi Detail",
-        #         "Aktivitas Luar Kampus",
-        #         "Faktor Kerja",
-        #     ],
-        #     inplace=True,
-        # )
-
-        # Konversi nilai biner 'Ya'/'Tidak' ke angka
-        # data["MBKM"] = data["MBKM"].map({"Ya": 1, "Tidak": 0})
-        # data["Organisasi"] = data["Organisasi"].map({"Ya": 1, "Tidak": 0})
-        # data["Bekerja"] = data["Bekerja"].map({"Ya": 1, "Tidak": 0})
-
         dataset = data.copy()
 
         # Normalisasi Z-score
-        data_numeric = data.drop(columns=["Responden"])
-        data_normalized = data_numeric.apply(zscore).round(4)
+        scaler = MinMaxScaler()
+        data_scaled = scaler.fit_transform(data[features])
 
-        data_normalized.to_csv(
+        data_scaled_df = pd.DataFrame(data_scaled, columns=features)
+        data_scaled_df.to_csv(
             os.path.join(app.config["UPLOAD_FOLDER"], "data_normalized.csv")
         )
 
-        # Hitung matriks jarak Euclidean
-        distance_matrix = pdist(data_normalized, metric="euclidean")
-
         # Hierarchical Clustering dan Dendrogram
-        linkage_matrix = linkage(distance_matrix, method="average")
+        linkage_matrix = linkage(data_scaled, method="ward", metric="euclidean")
 
         # Simpan dendrogram
         plt.figure(figsize=(10, 7))
@@ -100,47 +69,36 @@ def process_file(filepath):
         plt.savefig(dendrogram_path)
         plt.close()
 
-        # Silhouette Score untuk berbagai klaster
-        range_n_clusters = list(range(3, 11))
-        silhouette_scores = []
-        for n_clusters in range_n_clusters:
-            cluster_labels = fcluster(linkage_matrix, n_clusters, criterion="maxclust")
-            score = silhouette_score(data_normalized, cluster_labels)
-            silhouette_scores.append(score.round(4))
+        #  jumlah klaster tetap (3 klaster)
+        num_clusters = 3
 
-        silhouette_df = pd.DataFrame(
-            {
-                "Jumlah Klaster": range_n_clusters,
-                "Nilai Silhouette Score": silhouette_scores,
-            }
-        )
-
-        # Plot Silhouette Score
-        plt.figure(figsize=(10, 6))
-        plt.plot(range_n_clusters, silhouette_scores, marker="o")
-        plt.title("Silhouette Score untuk Berbagai Jumlah Klaster")
-        plt.xlabel("Jumlah Klaster")
-        plt.ylabel("Silhouette Score")
-        plt.grid(True)
-        silhouette_path = os.path.join(
-            app.config["UPLOAD_FOLDER"], "silhouette_scores.png"
-        )
-        plt.savefig(silhouette_path)
-        plt.close()
-
-        # Tentukan jumlah klaster optimal
-        klaster_index = silhouette_scores.index(max(silhouette_scores))
-        klaster_optimal = range_n_clusters[klaster_index]
-
-        # Tampilkan klaster optimal
-        print(f"Jumlah klaster optimal: {klaster_optimal}")
-        print(f"Silhouette Score tertinggi: {max(silhouette_scores).round(4)}")
-
-        # silhouette_df.to_csv(os.path.join(app.config['UPLOAD_FOLDER'], 'silhouette_scores.csv'), index=False)
-
-        # Buat klaster dengan jumlah klaster optimal
-        cluster_labels = fcluster(linkage_matrix, klaster_optimal, criterion="maxclust")
+        # Buat klaster dengan jumlah klaster tetap
+        cluster_labels = fcluster(linkage_matrix, num_clusters, criterion="maxclust")
         data["Cluster"] = cluster_labels
+
+        # Hitung Silhouette Score
+        silhouette_avg = silhouette_score(data_scaled, cluster_labels)
+
+        # Hitung Silhouette Score untuk setiap responden
+        silhouette_values = silhouette_samples(data_scaled, cluster_labels)
+
+        # Visualisasi Plot Silhouette
+        plt.figure(figsize=(10, 7))
+        sns.histplot(silhouette_values, kde=True, color="blue")
+        plt.axvline(
+            x=silhouette_avg,
+            color="red",
+            linestyle="--",
+            label=f"Average Silhouette Score: {silhouette_avg:.2f}",
+        )
+        plt.title("Distribusi Silhouette Score per Sampel")
+        plt.xlabel("Silhouette Score")
+        plt.ylabel("Frekuensi")
+        silhouette_plot_path = os.path.join(
+            app.config["UPLOAD_FOLDER"], "silhouette_score_plot.png"
+        )
+        plt.savefig(silhouette_plot_path)
+        plt.close()
 
         # Visualisasi pola perubahan IPK setiap klaster
         plt.figure(figsize=(12, 6))
@@ -201,24 +159,16 @@ def process_file(filepath):
 
         return {
             "dendrogram": dendrogram_path,
-            "silhouette": silhouette_path,
             "perubahan_ipk": perubahan_ipk_path,
-            "cluster_count": klaster_optimal,
+            "silhouette_score_plot": silhouette_plot_path,
+            "silhouette_score": round(silhouette_avg, 2),
             "interpretasi": interpretasi,
-            "dataset": dataset.to_html(
-                classes="table table-striped",
-            ),
-            "data": data.to_html(
-                classes="table table-striped",
-            ),
-            "data_normalized": data_normalized.to_html(
-                classes="table table-striped",
-            ),
-            "silhouette_df": silhouette_df.to_html(classes="table table-striped"),
+            "dataset": dataset.to_html(classes="table table-striped"),
+            "data": data.to_html(classes="table table-striped"),
+            "data_normalized": data_scaled_df.to_html(classes="table table-striped"),
         }
 
     except Exception as e:
-        # Tangkap semua error dan kembalikan pesan error
         return {"error": str(e)}
 
 
@@ -234,10 +184,9 @@ def index():
             flash("Tidak ada file yang di upload", "danger")
             return redirect(request.url)
         if file and file.filename.endswith(".csv"):  # Pastikan file CSV
-            # filename = secure_filename(file.filename)
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], "dataset.csv")
             file.save(filepath)
-            # Proses file dan dapatkan hasil
+            # Proses aplikasi
             hasil = process_file(filepath)
             if "error" in hasil:
                 flash("Data tidak valid", "danger")
@@ -250,7 +199,6 @@ def index():
     return render_template("index.html")
 
 
-# Jalankan aplikasi
 if __name__ == "__main__":
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
