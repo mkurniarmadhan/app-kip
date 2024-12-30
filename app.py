@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 from sklearn.preprocessing import MinMaxScaler
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import silhouette_score, silhouette_samples
 from scipy.stats import zscore
 
@@ -25,6 +26,8 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 # Fungsi untuk melakukan klasterisasi dan menghasilkan visualisasi
 def process_file(filepath):
     try:
+
+        # baca data dari
         data = pd.read_csv(filepath)
 
         features = [
@@ -49,6 +52,7 @@ def process_file(filepath):
         data_scaled = scaler.fit_transform(data[features])
 
         data_scaled_df = pd.DataFrame(data_scaled, columns=features)
+
         data_scaled_df.to_csv(
             os.path.join(app.config["UPLOAD_FOLDER"], "data_normalized.csv")
         )
@@ -56,7 +60,7 @@ def process_file(filepath):
         # Hierarchical Clustering dan Dendrogram
         linkage_matrix = linkage(data_scaled, method="ward", metric="euclidean")
 
-        # Simpan dendrogram
+        # Visualisasi Dendrogram
         plt.figure(figsize=(10, 7))
         dendrogram(
             linkage_matrix,
@@ -69,67 +73,50 @@ def process_file(filepath):
         plt.savefig(dendrogram_path)
         plt.close()
 
-        #  jumlah klaster tetap (3 klaster)
-        num_clusters = 3
+        # Tentukan range klaster yang akan diuji
+        cluster_range = range(2, 6)
+        silhouette_scores = []
 
-        # Buat klaster dengan jumlah klaster tetap
-        cluster_labels = fcluster(linkage_matrix, num_clusters, criterion="maxclust")
-        data["Cluster"] = cluster_labels
+        # Hitung Silhouette Score untuk setiap jumlah klaster
+        for n_clusters in cluster_range:
+            clustering = AgglomerativeClustering(
+                n_clusters=n_clusters, linkage="ward", metric="euclidean"
+            )
+            cluster_labels = clustering.fit_predict(data_scaled)
+            score = silhouette_score(data_scaled, cluster_labels)
+            silhouette_scores.append(score)
 
-        # Hitung Silhouette Score
-        silhouette_avg = silhouette_score(data_scaled, cluster_labels)
-
-        # Hitung Silhouette Score untuk setiap responden
-        silhouette_values = silhouette_samples(data_scaled, cluster_labels)
-
-        # Visualisasi Plot Silhouette
-        plt.figure(figsize=(10, 7))
-        sns.histplot(silhouette_values, kde=True, color="blue")
-        plt.axvline(
-            x=silhouette_avg,
-            color="red",
-            linestyle="--",
-            label=f"Average Silhouette Score: {silhouette_avg:.2f}",
+        # Plot Silhouette Scores
+        plt.figure(figsize=(8, 5))
+        plt.plot(cluster_range, silhouette_scores, marker="o")
+        plt.title("Silhouette Scores untuk Berbagai Jumlah Klaster")
+        plt.xlabel("Jumlah Klaster")
+        plt.ylabel("Silhouette Score")
+        plt.grid(True)
+        silhouette_path = os.path.join(
+            app.config["UPLOAD_FOLDER"], "silhouette_score.png"
         )
-        plt.title("Distribusi Silhouette Score per Sampel")
-        plt.xlabel("Silhouette Score")
-        plt.ylabel("Frekuensi")
-        silhouette_plot_path = os.path.join(
-            app.config["UPLOAD_FOLDER"], "silhouette_score_plot.png"
-        )
-        plt.savefig(silhouette_plot_path)
+        plt.savefig(silhouette_path)
         plt.close()
 
-        # Visualisasi pola perubahan IPK setiap klaster
-        plt.figure(figsize=(12, 6))
-        semesters = [
-            "P1",
-            "P2",
-            "P3",
-            "P4",
-            "P5",
-            "P6",
-            "P7",
-            "P8",
-        ]
-        for cluster in data["Cluster"].unique():
-            cluster_data = data[data["Cluster"] == cluster]
-            mean_ips = cluster_data[semesters].mean()
-            sns.lineplot(x=semesters, y=mean_ips, label=f"Cluster {cluster}")
+        klaster_optimal = cluster_range[np.argmax(silhouette_scores)]
 
-        plt.title("Pola Perubahan IPK Mahasiswa dalam Setiap Klaster")
-        plt.xlabel("Semester")
-        plt.ylabel("IPK Rata-Rata")
-        perubahan_ipk_path = os.path.join(
-            app.config["UPLOAD_FOLDER"], "perubahan_ipk.png"
+        # Clustering dengan jumlah klaster optimal
+        clustering = AgglomerativeClustering(
+            n_clusters=klaster_optimal, linkage="ward", metric="euclidean"
         )
-        plt.savefig(perubahan_ipk_path)
-        plt.close()
+        data["Cluster"] = clustering.fit_predict(data_scaled)
+
+        cluster_mean_ipk = {}
 
         # Interpretasi Hasil Klasterisasi
         interpretasi = []
         for cluster in sorted(data["Cluster"].unique()):
             cluster_data = data[data["Cluster"] == cluster]
+            mean_ipk_per_semester = cluster_data[
+                ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+            ].mean()
+            cluster_mean_ipk[cluster] = mean_ipk_per_semester
             jumlah_data = cluster_data.shape[0]
             rata_rata_ipk = cluster_data["P9"].mean()
             mbkm_percent = (cluster_data["P10"].mean()) * 100
@@ -137,12 +124,24 @@ def process_file(filepath):
             organisasi_percent = (cluster_data["P12"].mean()) * 100
             anggota = cluster_data["Responden"].tolist()
 
-            if mbkm_percent == 0 and organisasi_percent == 0 and bekerja_percent == 0:
-                interpretasi_hasil = "Mahasiswa dalam klaster ini cenderung fokus pada studi akademik tanpa terlibat dalam kegiatan ekstrakurikuler."
-            elif mbkm_percent == 1 and organisasi_percent == 1 and bekerja_percent == 1:
-                interpretasi_hasil = "Mahasiswa dalam klaster ini berhasil menjaga performa akademik yang sangat baik meskipun terlibat dalam banyak kegiatan non-akademik."
+            interpretasi_hasil = ""
+            if rata_rata_ipk >= 3.5:
+                interpretasi_hasil += (
+                    "Pola IPK: Stabil atau meningkat dengan IPK Kumulatif yang baik.\n"
+                )
             else:
-                interpretasi_hasil = "Mahasiswa dalam klaster ini menunjukkan performa akademik yang lebih rendah, meskipun terlibat dalam MBKM dan organisasi."
+                interpretasi_hasil += (
+                    "Pola IPK: Mungkin ada penurunan atau ketidakstabilan dalam IPK.\n"
+                )
+
+            if mbkm_percent > 50:
+                interpretasi_hasil += "Faktor MBKM: Mahasiswa dalam klaster ini memiliki banyak yang ikut MBKM.\n"
+
+            if bekerja_percent > 50:
+                interpretasi_hasil += "Faktor Pekerjaan: Mahasiswa dalam klaster ini banyak yang bekerja sambil kuliah.\n"
+
+            if organisasi_percent > 50:
+                interpretasi_hasil += "Faktor Organisasi: Mahasiswa dalam klaster ini aktif dalam organisasi.\n"
 
             interpretasi.append(
                 {
@@ -156,12 +155,41 @@ def process_file(filepath):
                     "interpretasi": interpretasi_hasil,
                 }
             )
+            # Visualisasi perubahan IPK rata-rata per klaster dalam satu grafik
+            plt.figure(figsize=(10, 6))
+            # Plotkan pola perubahan IPK untuk setiap klaster
+            for cluster, mean_ipk in cluster_mean_ipk.items():
+                plt.plot(
+                    [
+                        "Semester 1",
+                        "Semester 2",
+                        "Semester 3",
+                        "Semester 4",
+                        "Semester 5",
+                        "Semester 6",
+                        "Semester 7",
+                        "Semester 8",
+                    ],
+                    mean_ipk.values,
+                    marker="o",
+                    label=f"Klaster {cluster}",
+                )
+            plt.xlabel("Semester")
+            plt.ylabel("Rata-rata IPK")
+            plt.legend(title="Klaster")
+            plt.grid(True)
+            plt.tight_layout()
+            perubahan_ipk_path = os.path.join(
+                app.config["UPLOAD_FOLDER"], "perubahan_ipk.png"
+            )
+            plt.savefig(perubahan_ipk_path)
+            plt.close()
 
         return {
             "dendrogram": dendrogram_path,
             "perubahan_ipk": perubahan_ipk_path,
-            "silhouette_score_plot": silhouette_plot_path,
-            "silhouette_score": round(silhouette_avg, 2),
+            "silhouette_score_plot": silhouette_path,
+            "klaster_optimal": klaster_optimal,
             "interpretasi": interpretasi,
             "dataset": dataset.to_html(classes="table table-striped"),
             "data": data.to_html(classes="table table-striped"),
