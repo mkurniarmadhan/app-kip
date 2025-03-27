@@ -137,14 +137,17 @@
               role="tabpanel"
               aria-labelledby="v-pills-silhouette-tab"
             >
+              <h2>Jumlah Cluster Optimal : {{ hasil['klaster_optimal'] }}</h2>
+
               <img
                 class="img-fluid"
-                src="{{ url_for('static', filename='hasil/silhouette_score_plot.png') }}"
-                alt="silhouette_score_plot"
+                src="{{ url_for('static', filename='hasil/silhouette_score.png') }}"
+                alt="silhouette_score"
               />
 
-              <h2>Nilai Silhouette Score: {{ hasil['silhouette_score'] }}</h2>
-              <div class="table-responsive"></div>
+              <div class="table-responsive">
+                {{ hasil['silhouette_df']|safe }}
+              </div>
             </div>
             <div
               class="tab-pane fade"

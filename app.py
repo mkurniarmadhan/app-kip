@@ -18,16 +18,14 @@ app = Flask(__name__)
 
 app.secret_key = "appkip"
 
-# Folder untuk menyimpan file statis hasil proses
 UPLOAD_FOLDER = "static/hasil"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
-# Fungsi untuk melakukan klasterisasi dan menghasilkan visualisasi
 def process_file(filepath):
     try:
 
-        # baca data dari
+        # baca data yang di updaload
         data = pd.read_csv(filepath)
 
         features = [
@@ -47,12 +45,11 @@ def process_file(filepath):
 
         dataset = data.copy()
 
-        # Normalisasi Z-score
+        # Normalisasi Z
         scaler = MinMaxScaler()
         data_scaled = scaler.fit_transform(data[features])
 
         data_scaled_df = pd.DataFrame(data_scaled, columns=features)
-
         data_scaled_df.to_csv(
             os.path.join(app.config["UPLOAD_FOLDER"], "data_normalized.csv")
         )
@@ -85,6 +82,12 @@ def process_file(filepath):
             cluster_labels = clustering.fit_predict(data_scaled)
             score = silhouette_score(data_scaled, cluster_labels)
             silhouette_scores.append(score)
+        silhouette_df = pd.DataFrame(
+            {
+                "Jumlah Klaster": cluster_range,
+                "Nilai Silhouette Score": silhouette_scores,
+            }
+        )
 
         # Plot Silhouette Scores
         plt.figure(figsize=(8, 5))
@@ -105,6 +108,7 @@ def process_file(filepath):
         clustering = AgglomerativeClustering(
             n_clusters=klaster_optimal, linkage="ward", metric="euclidean"
         )
+
         data["Cluster"] = clustering.fit_predict(data_scaled)
 
         cluster_mean_ipk = {}
@@ -155,6 +159,7 @@ def process_file(filepath):
                     "interpretasi": interpretasi_hasil,
                 }
             )
+
             # Visualisasi perubahan IPK rata-rata per klaster dalam satu grafik
             plt.figure(figsize=(10, 6))
             # Plotkan pola perubahan IPK untuk setiap klaster
@@ -194,6 +199,7 @@ def process_file(filepath):
             "dataset": dataset.to_html(classes="table table-striped"),
             "data": data.to_html(classes="table table-striped"),
             "data_normalized": data_scaled_df.to_html(classes="table table-striped"),
+            "silhouette_df": silhouette_df.to_html(classes="table table-striped"),
         }
 
     except Exception as e:
@@ -211,7 +217,7 @@ def index():
         if file.filename == "":
             flash("Tidak ada file yang di upload", "danger")
             return redirect(request.url)
-        if file and file.filename.endswith(".csv"):  # Pastikan file CSV
+        if file and file.filename.endswith(".csv"):
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], "dataset.csv")
             file.save(filepath)
             # Proses aplikasi
